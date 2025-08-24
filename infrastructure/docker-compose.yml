@@ -1,0 +1,11 @@
+version: '3.8'
+services:
+  emqx:
+    image: emqx:5
+    container_name: emqx
+    ports:
+      - "1883:1883"
+      - "8083:8083"
+    environment:
+      - EMQX_AUTH__USER__1__USERNAME=guest
+      - EMQX_AUTH__USER__1__PASSWORD=guest
