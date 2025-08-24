@@ -1,34 +1,14 @@
-using MQTTnet;
-using MQTTnet.Client;
-using MQTTnet.Extensions.ManagedClient;
+using Backend;
 
 var builder = WebApplication.CreateBuilder(args);
 
 builder.Services.AddEndpointsApiExplorer();
 builder.Services.AddSwaggerGen();
 
-var mqttFactory = new MqttFactory();
-var mqttClient = mqttFactory.CreateManagedMqttClient();
-
-mqttClient.ConnectedAsync += _ =>
-{
-    Console.WriteLine("MQTT connected");
-    return Task.CompletedTask;
-};
-
-mqttClient.DisconnectedAsync += _ =>
-{
-    Console.WriteLine("MQTT disconnected");
-    return Task.CompletedTask;
-};
-
-var mqttOptions = new MqttClientOptionsBuilder()
-    .WithTcpServer("localhost", 1883)
-    .Build();
-
-await mqttClient.StartAsync(new ManagedMqttClientOptionsBuilder()
-    .WithClientOptions(mqttOptions)
-    .Build());
+builder.Services.Configure<MqttConfig>(builder.Configuration.GetSection("Mqtt"));
+builder.Services.AddSingleton<MqttService>();
+builder.Services.AddSingleton<IMqttPublisher>(sp => sp.GetRequiredService<MqttService>());
+builder.Services.AddHostedService(sp => sp.GetRequiredService<MqttService>());
 
 var app = builder.Build();
 
@@ -38,12 +18,14 @@ if (app.Environment.IsDevelopment())
     app.UseSwaggerUI();
 }
 
-app.MapPost("/notify", async (Notification notification) =>
+app.MapPost("/notify", async (Notification notification, IMqttPublisher publisher) =>
 {
-    await mqttClient.EnqueueAsync("notifications", notification.Message);
+    await publisher.PublishAsync(notification.Message);
     return Results.Ok(new { sent = notification.Message });
 });
 
 app.Run();
 
 record Notification(string Message);
+
+public partial class Program { }

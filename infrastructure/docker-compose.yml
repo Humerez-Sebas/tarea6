@@ -6,3 +6,6 @@ services:
     ports:
       - "1883:1883"
       - "8083:8083"
+    environment:
+      - EMQX_AUTH__USER__1__USERNAME=guest
+      - EMQX_AUTH__USER__1__PASSWORD=guest
